@@ -1,0 +1,18 @@
+#separator \x09
+#set_separator	,
+#empty_field	(empty)
+#unset_field	-
+#path	conn
+#open	2023-08-22-14-27-09
+#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	service	duration	orig_bytes	resp_bytes	conn_state	local_orig	local_resp	missed_bytes	history	orig_pkts	orig_ip_bytes	resp_pkts	resp_ip_bytes	tunnel_parents	label	detailedlabel
+#types	time	string	addr	port	addr	port	enum	string	interval	count	count	string	bool	bool	count	string	count	count	count	count	set[string]	string	string
+1676948542.728076	CKHfYK1zRaH6Ilesf9	193.105.134.95	49024	192.168.1.19	22	tcp	-	0.170552	934	1056	RSTO	F	T	0	ShADTadtfR	10	2292	10	2536	-	Benign	(empty)
+1676950773.213647	CXhcxL14p3P2vxXx8h	193.105.134.95	13126	192.168.1.19	22	tcp	ssh	3.799506	1808	2704	RSTO	F	T	0	ShADTadtR	22	4520	24	6392	-	Benign	(empty)
+1676960632.209998	Ce6gmF4rYKHTz1ihuf	193.105.134.95	62126	192.168.1.19	22	tcp	ssh	3.762523	1808	2704	RSTO	F	T	0	ShADTadtR	22	4520	26	6472	-	Benign	(empty)
+1676965422.033020	Ceral81TPYFYC69BP2	193.105.134.95	14812	192.168.1.19	22	tcp	ssh	3.798719	1805	2704	RSTO	F	T	0	ShADTadtR	24	4594	24	6392	-	Benign	(empty)
+1676972755.387578	CjBTZL386zQK7grOMe	193.105.134.95	62098	192.168.1.19	22	tcp	-	0.171250	932	1056	RSTO	F	T	0	ShADTadtfR	10	2288	10	2536	-	Benign	(empty)
+1676973854.614708	CD2b281D5Ifh22g9nc	193.105.134.95	12958	192.168.1.19	22	tcp	ssh	1.498106	3358	4320	RSTO	F	T	0	ShADTadtTtR	40	8340	44	10424	-	Benign	(empty)
+1676985535.998141	CApWji27eVqP56CYhc	193.105.134.95	11461	192.168.1.19	22	tcp	-	20.227594	932	1056	RSTO	F	T	0	ShADTadtfR	18	2728	24	5328	-	Benign	(empty)
+1676985814.335949	CuSeREcf6RfmwsLz4	193.105.134.95	5450	192.168.1.19	22	tcp	-	0.704984	932	1056	RSTO	F	T	0	ShADTadtfR	10	2288	10	2536	-	Benign	(empty)
+1677008151.517506	CXpYiCautqhSARr9e	193.105.134.95	45114	192.168.1.19	22	tcp	-	4.644741	932	1056	RSTO	F	T	0	ShADTadtfR	12	4168	16	2808	-	Benign	(empty)
+1677012450.137144	Cl7X5m41uQVZr8BRX	193.105.134.95	46871	192.168.1.19	22	tcp	ssh	37.557073	3376	4272	RSTO	F	T	0	ShADTadttTR	40	8400	52	12784	-	Benign	(empty)

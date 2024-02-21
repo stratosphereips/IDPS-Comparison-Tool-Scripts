@@ -1,15 +1,63 @@
-# Awesome Code Template
+# Features
 
-This repository is a template with basic elements that every repository at Stratosphere should follow.
+This repo contains the following scripts in scripts/ dir consider this branch a different tool.
+  *  a script for extracting the accumulated threat levels from slips alerts.json
+  *  a script for extracting the ground truth labels for each time window given the conn.log.labeled for a given IP
+  *  a script to determine the best threshold for sips based on the extracted threat levels and ground truth 
 
-## Features
 
-Write about what makes your [tool|code|data|repo] special.
+# Installation
 
-## Usage
+pip3 install -r requirements.txt
 
-Write about how others can use your [tool|code|data|repo].
+---
+
+
+# Usage
+
+##### command for generating all zeek files in the dataset/
+
+``` zeek -C -r <pcap>  tcp_inactivity_timeout=60mins tcp_attempt_delay=1min```
+
+
+##### command for labeling conn.log files
+
+``` python3 netflowlabeler.py -c labels.config -f /path/to/generated/conn.log ```
+
+##### (optional) To label the rest of the Zeek files using an already labeled conn.log file (conn.log.labeled)
+
+```zeek-files-labeler.py -l conn.log.labeled -f folder-with-zeek-log-files```
+
+##### command for extracting max accumulated threat level for all timewindows from an alert.json 
+
+```
+python3 scripts/max_accumulated_score_extractor_for_slips.py alerts.json <host_ip>
+```
+
+
+##### command for getting the best slips threshold given the extracted ground truth labels and max accumulated scores
+
+note: this script assumes the correct ground truth labels are in scripts/extracted_gt_tw_labels.py
+and the correct max accumulated scores of slips are in scripts/extracted_levels.py 
+
+* to print the metrics to cli
+```
+python3 scripts/slips_threshold_getter.py
+```
+
+* to plot the metrics
+```
+python3 scripts/slips_threshold_getter.py -p
+```
+
+
+##### command for extracting ground truth labels from a conn.log.labeled file
+note: we only extract the labels per timewindow per ip
+
+```
+python3 main.py -gtf conn.log.labeled -i <host_ip>
+```
+
 
 # About
-
-This [tool|code|data|repo] was developed at the Stratosphere Laboratory at the Czech Technical University in Prague.
+This repo was developed at the Stratosphere Laboratory at the Czech Technical University in Prague.

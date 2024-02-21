@@ -1,0 +1,6 @@
+Slips version: 1.0.7
+File: /home/alya/Desktop/IDPS-Comparison-Tool/dataset/Experiment-VM-Microsoft-Windows7AD-1-2023-02-26/2023-02-26-00-01-48-192.168.1.108.pcap
+Branch: alya/use-aid_hash-package
+Commit: c47076299dee9b7192b8271474e00ed65fa31015
+Slips start date: 2023/10/30 14:32:43.634152
+Slips end date: 2023/10/30 14:41:40.285890

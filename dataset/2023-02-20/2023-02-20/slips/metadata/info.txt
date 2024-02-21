@@ -1,0 +1,6 @@
+Slips version: 1.0.7
+File: /home/alya/Desktop/StratosphereLinuxIPS/Dataset/2023-02-20-00-00-03-192.168.1.109.pcap
+Branch: alya/use-aid_hash-package
+Commit: c47076299dee9b7192b8271474e00ed65fa31015
+Slips start date: 2023/10/30 13:39:07.209584
+Slips end date: 2023/10/30 13:49:34.216044
