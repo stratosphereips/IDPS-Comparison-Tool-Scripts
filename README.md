@@ -15,6 +15,9 @@ pip3 install -r requirements.txt
 
 # Usage
 
+
+```python3 -m pip install -r requirements.txt```
+
 ##### command for generating all zeek files in the dataset/
 
 ``` zeek -C -r <pcap>  tcp_inactivity_timeout=60mins tcp_attempt_delay=1min```

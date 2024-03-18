@@ -139,17 +139,18 @@ def get_confusion_metrics(exp: str,
         'FN': fn
     }
     return confusion_matrix
-    
-def main():
+
+def parse_args():
     parser = ArgumentParser(description='Process some integers.')
     parser.add_argument('-p',
                         '--plot',
                         action='store_true',
                         help='Call plot function')
-    args = parser.parse_args()
-
-
-
+    return parser.parse_args()
+    
+def main():
+    
+    args = parse_args()
     expirements_number = len(extracted_threat_levels)
 
     metrics: Dict[int, Dict[str, Dict[str, float]]] = {}

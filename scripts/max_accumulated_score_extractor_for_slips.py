@@ -12,9 +12,7 @@ import json
 import sys
 import ipaddress
 from typing import (
-    Dict,
     List,
-    Optional,
     )
 from pprint import pp
 
