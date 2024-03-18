@@ -11,7 +11,11 @@ python3 max_accumulated_score_extractor_for_slips.py <slips' alerts.json> <host 
 import json
 import sys
 import ipaddress
-from typing import Dict
+from typing import (
+    Dict,
+    List,
+    Optional,
+    )
 from pprint import pp
 
 tws = {}
@@ -69,7 +73,7 @@ def count_and_print_duplicate_scores(scores: list):
 
 
 def print_json_max_accumulated_score(
-        sorted_tws: Dict[str, float]
+        sorted_tws: dict
     ):
     """
     prints this dict
@@ -98,23 +102,26 @@ def get_ip_version(srcip):
     return ip_version
 
 
-
+def get_attackers(line: dict, ip_version: str) -> List[str]:
+    
+    try:
+        return line["Source"][0][ip_version]
+    except KeyError:
+        # detection doesn't match the given ipv4, skip it
+        return []
 
 
 ip_version: str = get_ip_version(srcip)
 
-with open(alertsjson, 'r') as f:
+with open(alertsjson) as f:
     lines_ctr = 0
     while line := f.readline():
         lines_ctr += 1
         line: dict = json.loads(line)
-        try:
-            sip = line["Source"][0][ip_version][0]
-        except Exception as e:
-            # detection doesn't match the given ipv4, skip it
-            continue
+        attackers: List[str] = get_attackers(line, ip_version)
 
-        if sip != srcip:
+        if srcip not in attackers:
+            # we only need evidence done by the given srcip
             continue
 
         tl = line['accumulated_threat_level']
