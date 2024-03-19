@@ -34,7 +34,7 @@ pip3 install -r requirements.txt
 ##### command for extracting max accumulated threat level for all timewindows from an alert.json 
 
 ```
-python3 scripts/max_accumulated_score_extractor_for_slips.py alerts.json <host_ip>
+python3 -m scripts.max_accumulated_score_extractor_for_slips alerts.json <host_ip>
 ```
 
 
@@ -45,12 +45,12 @@ and the correct max accumulated scores of slips are in scripts/extracted_levels.
 
 * to print the metrics to cli
 ```
-python3 scripts/slips_threshold_getter.py
+python3 -m scripts.slips_threshold_getter 
 ```
 
 * to plot the metrics
 ```
-python3 scripts/slips_threshold_getter.py -p
+python3 -m scripts.slips_threshold_getter  -p
 ```
 
 
