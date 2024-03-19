@@ -184,6 +184,7 @@ def main():
             metrics[threshold].update({exp: experiment_metrics})
 
     print(f"Total experiments: {expirements_number}")
+    
     if args.plot:
         plot = Plot()
         plot.line(metrics, [
@@ -191,6 +192,8 @@ def main():
                 'TN',
                 'FP',
                 'FN',
+            ])
+        plot.line(metrics,[
                 'MCC',
                 'recall',
                 'precision',
