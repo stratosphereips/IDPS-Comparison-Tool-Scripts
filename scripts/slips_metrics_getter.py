@@ -2,7 +2,7 @@
 calculates the TP TN FP FN for each threshold in the range 0..150
 this script tries all thresholds on all expirements on all tws
 
-Usage: python3 scripts/slips_threshold_getter.py
+Usage: python3 scripts/slips_metrics_getter.py
 
 """
 

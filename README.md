@@ -45,12 +45,12 @@ and the correct max accumulated scores of slips are in scripts/extracted_levels.
 
 * to print the metrics to cli
 ```
-python3 -m scripts.slips_threshold_getter 
+python3 -m scripts.slips_metrics_getter 
 ```
 
 * to plot the metrics
 ```
-python3 -m scripts.slips_threshold_getter  -p
+python3 -m scripts.slips_metrics_getter  -p
 ```
 
 
