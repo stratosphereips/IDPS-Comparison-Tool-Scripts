@@ -71,14 +71,14 @@ def print_extremes(threshold_with_min_max: Dict[str, Dict]):
         print(f"  Min value: {info['min_value']}, Threshold: {info['min_threshold']}")
         print(f"  Max value: {info['max_value']}, Threshold: {info['max_threshold']}")
 
-def metrics_sum(
+def get_sum_of_metrics(
     metrics: Dict[int, Dict[str, Dict[str, float]]],
     metrics_to_sum: List[str]
     ):
     """
-    prints the sum of all tp fp tn fn for all expirements using all
+    prints the sum of all tp fp tn fn for all experiments using all
     thresholds
-    and the min fp and fn and the mac tp nd tn
+    and the min fp and fn and the max tp nd tn
     :param metrics: is something like this
     {
         1: {exp1: {TP: 0, FP: 0, TN: 0, FN:}, 'exp2':...}
@@ -89,8 +89,8 @@ def metrics_sum(
     """
     threshold_with_min_max = {
         metric: {'min_value': float("inf"),
-                 'max_value': 0,
                  'min_threshold': None,
+                 'max_value': 0,
                  'max_threshold': None} for metric in metrics_to_sum}
 
     for threshold, experiments in metrics.items():
@@ -148,6 +148,49 @@ def parse_args():
                         help='Call plot function')
     return parser.parse_args()
     
+def avg(values_to_avg: List[float]):
+    """returns the avg of the given list"""
+    return sum(values_to_avg) / len(values_to_avg)
+    
+def get_avg_of_metrics(
+        metrics: Dict[int, Dict[str, Dict[str, float]]],
+        metrics_to_use: List[str],
+    ) -> Dict[int, Dict[str, float]]:
+    """
+    Gathers the values of metrics we need to get the average for
+    returns the following dict
+    {
+        threshold: { MCC: avergae_value, TPR: avergae_value, etc..}
+    }
+    """
+    res: Dict[int, Dict[str, float]] = {}
+    for threshold, experiments in metrics.items():
+        # for each threshold, we get the avg of
+        # the given metrics_to_use
+        values_to_avg = {}
+        experiments: Dict[str, Dict[str, float]]
+        
+        for experiment_metrics in experiments.values():
+            experiment_metrics: Dict[str, float]
+            
+            for metric in metrics_to_use:
+                matric_val: float = experiment_metrics[metric]
+                try:
+                    values_to_avg[metric].append(matric_val)
+                except KeyError:
+                    values_to_avg[metric] = [matric_val]
+                    
+        for metric, to_avg in values_to_avg.items():
+            metric: str
+            to_avg: List[float]
+            try:
+                res[threshold].update({ metric: avg(to_avg)})
+            except KeyError:
+                res[threshold] = { metric: avg(to_avg)}
+    return res
+    
+    
+    
 def main():
     
     args = parse_args()
@@ -155,7 +198,7 @@ def main():
 
     metrics: Dict[int, Dict[str, Dict[str, float]]] = {}
 
-    for threshold in range(1, 400):
+    for threshold in range(1, 5):
         metrics[threshold] = {}
 
         for exp, scores in extracted_threat_levels.items():
@@ -206,13 +249,19 @@ def main():
             ])
     else:
         pp(metrics)
-        metrics_sum(
+        get_sum_of_metrics(
             metrics,
             [
                 'TP',
                 'TN',
                 'FP',
                 'FN',
+                
+            ]
+        )
+        avg: dict = get_avg_of_metrics(
+            metrics,
+            [
                 'MCC',
                 'recall',
                 'precision',
@@ -224,6 +273,8 @@ def main():
                 'accuracy'
             ]
         )
+        for threshold, averages in avg.items():
+            print_metrics_summary(threshold, averages)
 
 if __name__ == "__main__":
     main()

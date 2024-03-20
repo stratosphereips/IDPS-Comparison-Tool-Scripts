@@ -38,8 +38,6 @@ def count_and_print_duplicate_scores(scores: list):
             prev_score = float(0)
             last_score_in_twid = False
 
-
-
         try:
             nxt_score = float(scores[i+1])
         except IndexError:
@@ -51,7 +49,6 @@ def count_and_print_duplicate_scores(scores: list):
 
         if score != prev_score:
             # reset the zeros ctr
-
             if (not printed and ctr > 0):
                 print(f"{prev_score} --  {ctr} times")
                 printed = True
@@ -86,7 +83,6 @@ def print_json_max_accumulated_score(
     pp(res)
 
 def print_max_accumulated_score(scores: list):
-
     print(max(scores))
 
 
@@ -101,7 +97,6 @@ def get_ip_version(srcip):
 
 
 def get_attackers(line: dict, ip_version: str) -> List[str]:
-    
     try:
         return line["Source"][0][ip_version]
     except KeyError:
