@@ -40,11 +40,11 @@ def is_tw_malicious(experiment: str, timewindow: int) -> bool:
         # print(f"problem getting the label of {experiment} {timewindow},")
         return False
 
-def print_metrics_summary(metrics_sum: Dict[str, float]):
+def print_metrics_summary(metrics: Dict[str, float]):
     """
     Print the summary of metrics for a specific threshold.
     """
-    for metric, value in metrics_sum.items():
+    for metric, value in metrics.items():
         print(f" total {metric}: {value}")
         
 def update_extremes(
@@ -266,41 +266,33 @@ def main():
     else:
         pp(metrics)
         print_line()
-        metrics_to_sum = [
+        error_metrics = [
                 'TP',
                 'TN',
                 'FP',
                 'FN',
-                
             ]
         _sum: Dict[int, Dict[str, float]] = get_sum_of_metrics(
             metrics,
-            metrics_to_sum
-        )
-        
-        avg: dict = get_avg_of_metrics(
-            metrics,
-            [
-                'MCC',
-                'recall',
-                'precision',
-                'F1',
-                'FPR',
-                'TPR',
-                'FNR',
-                'TNR',
-                'accuracy'
-            ]
+            error_metrics
         )
         print("Printing total error metrics for all experiments")
-        for threshold in THRESHOLDS_TO_BRUTEFORCE:
+        for threshold, error_values_sum in _sum.items():
+            error_values_sum: Dict[str, float]
+            
             print(f"\nThreshold: {threshold}:")
-            print_metrics_summary(avg[threshold])
-            print_metrics_summary(_sum[threshold])
+            print_metrics_summary(error_values_sum)
+
+            calc = Calculator("slips", f'/tmp/slips_threshold_{threshold}')
+            # get the total tn tp fp fn for this threshold considering all 
+            # experiments
+            calc.metrics = error_values_sum.copy()
+            # now calc the rest of the metrics using the total fp fn tp tn
+            print_metrics_summary(calc.calc_all_metrics())
 
         print_line()
-        print("These are the best thresholds so far")
-        print_extremes(get_extremes(metrics_to_sum, _sum))
+        print("Best/Worst thresholds so far")
+        print_extremes(get_extremes(error_metrics, _sum))
         print_line()
 
 

@@ -2,7 +2,11 @@ from database.sqlite_db import SQLiteDB
 from termcolor import colored
 from os import path
 from math import sqrt
-from typing import Optional, Iterator
+from typing import (
+    Optional,
+    Iterator,
+    Dict,
+    )
 from abstracts.observer import IObservable
 from logger.logger import Logger
 
@@ -248,10 +252,11 @@ class Calculator(IObservable):
         self.log(f"{self.tool}: Accuracy: ", acc)
         return acc
 
-    def calc_all_metrics(self):
+    def calc_all_metrics(self) -> Dict[str, float]:
         """
         calls all the methods in this class
         """
+        res = {}
         for metric in (
             self.FPR,
             self.FNR,
@@ -263,8 +268,8 @@ class Calculator(IObservable):
             self.accuracy,
             self.MCC,
         ):
-            metric()
-
+            res.update({metric.__name__ : metric()})
+        return res
     # def __del__(self):
         # if hasattr(self, 'db'):
         #     self.db.close()
