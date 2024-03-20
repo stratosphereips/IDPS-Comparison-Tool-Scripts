@@ -16,6 +16,11 @@ from scripts.extracted_gt_tw_labels import gt_tw_labels
 from metrics.calculator import Calculator
 
 
+THRESHOLDS_TO_BRUTEFORCE = range(1, 400)
+
+def print_line():
+    print("-"*20)
+
 def is_tw_malicious(experiment: str, timewindow: int) -> bool:
     """
     checks whether the ground truth label of the given timewindow is malicious
@@ -35,14 +40,12 @@ def is_tw_malicious(experiment: str, timewindow: int) -> bool:
         # print(f"problem getting the label of {experiment} {timewindow},")
         return False
 
-def print_metrics_summary(threshold: int, metrics_sum: Dict[str, float]):
+def print_metrics_summary(metrics_sum: Dict[str, float]):
     """
     Print the summary of metrics for a specific threshold.
     """
-    print(f"Threshold: {threshold}:")
     for metric, value in metrics_sum.items():
         print(f" total {metric}: {value}")
-        
         
 def update_extremes(
     threshold: int,
@@ -91,11 +94,7 @@ def get_sum_of_metrics(
         threshold : {metric: sum}
     }
     """
-    threshold_with_min_max = {
-        metric: {'min_value': float("inf"),
-                 'min_threshold': None,
-                 'max_value': 0,
-                 'max_threshold': None} for metric in metrics_to_sum}
+    
     res: Dict[int, Dict[str, float]] = {}
     for threshold, experiments in metrics.items():
         res[threshold] = {}
@@ -107,9 +106,8 @@ def get_sum_of_metrics(
                 
         for metric in metrics_to_sum:
             res[threshold].update({metric: metrics_sum[metric]})
-        update_extremes(threshold, metrics_sum, threshold_with_min_max)
+        
     return res
-    # print_extremes(threshold_with_min_max) #TODO
 
 
     
@@ -196,7 +194,18 @@ def get_avg_of_metrics(
                 res[threshold] = { metric: avg(to_avg)}
     return res
     
-    
+def get_extremes(metrics_to_sum: List[str], _sum: Dict[int, Dict[str, float]]):
+    """
+    prints the thresholds resulting in min FP, FN and max TP, TN
+    """
+    threshold_with_min_max = {
+        metric: {'min_value': float("inf"),
+                 'min_threshold': None,
+                 'max_value': 0,
+                 'max_threshold': None} for metric in metrics_to_sum}
+    for threshold, metric_sum in _sum.items():
+        update_extremes(threshold, metric_sum, threshold_with_min_max)
+    return threshold_with_min_max
     
 def main():
     
@@ -205,7 +214,7 @@ def main():
 
     metrics: Dict[int, Dict[str, Dict[str, float]]] = {}
 
-    for threshold in range(1, 5):
+    for threshold in THRESHOLDS_TO_BRUTEFORCE:
         metrics[threshold] = {}
 
         for exp, scores in extracted_threat_levels.items():
@@ -256,18 +265,18 @@ def main():
             ])
     else:
         pp(metrics)
-        _sum: Dict[int, Dict[str, float]] = get_sum_of_metrics(
-            metrics,
-            [
+        print_line()
+        metrics_to_sum = [
                 'TP',
                 'TN',
                 'FP',
                 'FN',
                 
             ]
+        _sum: Dict[int, Dict[str, float]] = get_sum_of_metrics(
+            metrics,
+            metrics_to_sum
         )
-        for threshold, metric_sum in _sum.items():
-            print_metrics_summary(threshold, metric_sum)
         
         avg: dict = get_avg_of_metrics(
             metrics,
@@ -283,8 +292,17 @@ def main():
                 'accuracy'
             ]
         )
-        for threshold, averages in avg.items():
-            print_metrics_summary(threshold, averages)
+        print("Printing total error metrics for all experiments")
+        for threshold in THRESHOLDS_TO_BRUTEFORCE:
+            print(f"\nThreshold: {threshold}:")
+            print_metrics_summary(avg[threshold])
+            print_metrics_summary(_sum[threshold])
+
+        print_line()
+        print("These are the best thresholds so far")
+        print_extremes(get_extremes(metrics_to_sum, _sum))
+        print_line()
+
 
 if __name__ == "__main__":
     main()
