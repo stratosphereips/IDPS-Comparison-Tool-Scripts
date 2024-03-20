@@ -74,7 +74,7 @@ def print_extremes(threshold_with_min_max: Dict[str, Dict]):
 def get_sum_of_metrics(
     metrics: Dict[int, Dict[str, Dict[str, float]]],
     metrics_to_sum: List[str]
-    ):
+    ) -> Dict[int, Dict[str, float]]:
     """
     prints the sum of all tp fp tn fn for all experiments using all
     thresholds
@@ -86,24 +86,31 @@ def get_sum_of_metrics(
     }
     :param metrics_to_sum: list of what metrics to print the sum of for
     example ["FP", "MCC", etc...]
+    returns the following dict
+    {
+        threshold : {metric: sum}
+    }
     """
     threshold_with_min_max = {
         metric: {'min_value': float("inf"),
                  'min_threshold': None,
                  'max_value': 0,
                  'max_threshold': None} for metric in metrics_to_sum}
-
+    res: Dict[int, Dict[str, float]] = {}
     for threshold, experiments in metrics.items():
-        metrics_sum = {metric: 0 for metric in metrics_to_sum}
-
+        res[threshold] = {}
+        metrics_sum: Dict[str, int] = {metric: 0 for metric in metrics_to_sum}
+        
         for experiment_metrics in experiments.values():
             for metric in metrics_to_sum:
                 metrics_sum[metric] += experiment_metrics[metric]
-
-        print_metrics_summary(threshold, metrics_sum)
+                
+        for metric in metrics_to_sum:
+            res[threshold].update({metric: metrics_sum[metric]})
         update_extremes(threshold, metrics_sum, threshold_with_min_max)
-        
-    print_extremes(threshold_with_min_max)
+    return res
+    # print_extremes(threshold_with_min_max) #TODO
+
 
     
 def get_confusion_metrics(exp: str,
@@ -249,7 +256,7 @@ def main():
             ])
     else:
         pp(metrics)
-        get_sum_of_metrics(
+        _sum: Dict[int, Dict[str, float]] = get_sum_of_metrics(
             metrics,
             [
                 'TP',
@@ -259,6 +266,9 @@ def main():
                 
             ]
         )
+        for threshold, metric_sum in _sum.items():
+            print_metrics_summary(threshold, metric_sum)
+        
         avg: dict = get_avg_of_metrics(
             metrics,
             [
