@@ -15,7 +15,7 @@ class Plot:
         for metric in metrics_to_plot:
             y = []
             # Plot each metric as a separate line
-            for threshold, experiments  in metrics.items():
+            for threshold, experiments in metrics.items():
                 _sum = 0
                 for exp_name, exp_values in experiments.items():
                     _sum += exp_values[metric]
