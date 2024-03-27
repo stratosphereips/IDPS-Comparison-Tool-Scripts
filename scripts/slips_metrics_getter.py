@@ -16,7 +16,7 @@ from scripts.extracted_gt_tw_labels import gt_tw_labels
 from metrics.calculator import Calculator
 
 
-THRESHOLDS_TO_BRUTEFORCE = range(1, 400)
+THRESHOLDS_TO_BRUTEFORCE = range(1, 3)
 
 def print_line():
     print("-"*20)
@@ -243,58 +243,46 @@ def main():
             metrics[threshold].update({exp: experiment_metrics})
 
     print(f"Total experiments: {expirements_number}")
+
+
+    pp(metrics)
+    print_line()
+    error_metrics = [
+            'TP',
+            'TN',
+            'FP',
+            'FN',
+        ]
+    _sum: Dict[int, Dict[str, float]] = get_sum_of_metrics(
+        metrics,
+        error_metrics
+    )
+    print("Printing total error metrics for all experiments")
+    for threshold, error_values_sum in _sum.items():
+        # this contains the sumf of FP TP FN TN for 1 threshold
+        error_values_sum: Dict[str, float]
+        
+        print(f"\nThreshold: {threshold}:")
+        # print the error vaues only , tp fp tn and fn.
+        print_metrics_summary(error_values_sum)
+
+        # now calc the TPR TNR FPR MCC etc. using the total fp fn tp tn
+        # from error_values_sum.
+        calc = Calculator("slips", f'/tmp/slips_threshold_{threshold}')
+        # get the sum of tn tp fp fn for this threshold considering all
+        # experiments
+        calc.metrics = error_values_sum.copy()
+        print_metrics_summary(calc.calc_all_metrics())
+
+        print_line()
+        
+    print("Best/Worst thresholds so far")
+    print_extremes(get_extremes(error_metrics, _sum))
+    print_line()
     
     if args.plot:
-        plot = Plot()
-        plot.line(metrics, [
-                'TP',
-                'TN',
-                'FP',
-                'FN',
-            ])
-        plot.line(metrics,[
-                'MCC',
-                'recall',
-                'precision',
-                'F1',
-                'FPR',
-                'TPR',
-                'FNR',
-                'TNR',
-                'accuracy'
-            ])
-    else:
-        pp(metrics)
-        print_line()
-        error_metrics = [
-                'TP',
-                'TN',
-                'FP',
-                'FN',
-            ]
-        _sum: Dict[int, Dict[str, float]] = get_sum_of_metrics(
-            metrics,
-            error_metrics
-        )
-        print("Printing total error metrics for all experiments")
-        for threshold, error_values_sum in _sum.items():
-            error_values_sum: Dict[str, float]
-            
-            print(f"\nThreshold: {threshold}:")
-            print_metrics_summary(error_values_sum)
-
-            calc = Calculator("slips", f'/tmp/slips_threshold_{threshold}')
-            # get the total tn tp fp fn for this threshold considering all 
-            # experiments
-            calc.metrics = error_values_sum.copy()
-            # now calc the rest of the metrics using the total fp fn tp tn
-            print_metrics_summary(calc.calc_all_metrics())
-
-        print_line()
-        print("Best/Worst thresholds so far")
-        print_extremes(get_extremes(error_metrics, _sum))
-        print_line()
-
+        #TODO plot
+        ...
 
 if __name__ == "__main__":
     main()
