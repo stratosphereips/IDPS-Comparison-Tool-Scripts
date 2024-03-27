@@ -281,8 +281,13 @@ def main():
     print_line()
     
     if args.plot:
-        #TODO plot
-        ...
+        plot = Plot()
+        plot.line(
+            _sum,
+            "Sum of Errors Over Thresholds"
+            )
+        
+        
 
 if __name__ == "__main__":
     main()
