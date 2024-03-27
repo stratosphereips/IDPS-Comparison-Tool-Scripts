@@ -4,9 +4,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN  apt update  \
      && apt install -y --no-install-recommends software-properties-common  \
-     && add-apt-repository ppa:oisf/suricata-beta  \
+     && add-apt-repository -y ppa:oisf/suricata-beta  \
      && apt update  \
-     && apt upgrade  \
+     && apt upgrade  -y \
      && apt install -y --no-install-recommends  \
     suricata \
     tree \
