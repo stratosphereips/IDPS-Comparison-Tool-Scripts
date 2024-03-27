@@ -295,11 +295,14 @@ def main():
         plot = Plot()
         plot.line(
             sum_of_confusion_matrix_per_threshold,
-            "Sum of Errors Over Thresholds"
+            "Sum of Errors Over Thresholds",
+            y_axis_label="Errors"
             )
         plot.line(
             error_rates,
-            "Error Rates Over Thresholds"
+            "Error Rates Over Thresholds",
+            y_axis_label="Rates"
+            
         )
         
         

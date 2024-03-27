@@ -6,7 +6,9 @@ from typing import Dict, List
 class Plot:
     def line(self,
             metrics_per_threshold: Dict[int, Dict[str, float]],
-            title: str
+            title: str,
+            x_axis_label: str='Thresholds',
+            y_axis_label: str='Metrics',
             ):
         """
         Each call to this function results in one graph/plot , each metric in
@@ -40,8 +42,8 @@ class Plot:
             
 
         plt.title(title)
-        plt.xlabel('Thresholds')
-        plt.ylabel("Metrics")
+        plt.xlabel(x_axis_label)
+        plt.ylabel(y_axis_label)
         plt.legend()
         plt.show()
 
