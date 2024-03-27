@@ -16,7 +16,7 @@ from scripts.extracted_gt_tw_labels import gt_tw_labels
 from metrics.calculator import Calculator
 
 
-THRESHOLDS_TO_BRUTEFORCE = range(1, 3)
+THRESHOLDS_TO_BRUTEFORCE = range(1, 400)
 
 def print_line():
     print("-"*20)
@@ -69,10 +69,12 @@ def print_extremes(threshold_with_min_max: Dict[str, Dict]):
     """
     Print the extreme values for each metric and their corresponding thresholds.
     """
+    print("Best/Worst thresholds so far")
     for metric, info in threshold_with_min_max.items():
         print(f"{metric}:")
         print(f"  Min value: {info['min_value']}, Threshold: {info['min_threshold']}")
         print(f"  Max value: {info['max_value']}, Threshold: {info['max_threshold']}")
+    print_line()
 
 def get_sum_of_metrics(
     metrics: Dict[int, Dict[str, Dict[str, float]]],
@@ -253,39 +255,52 @@ def main():
             'FP',
             'FN',
         ]
-    _sum: Dict[int, Dict[str, float]] = get_sum_of_metrics(
+    
+    sum_of_confusion_matrix_per_threshold: Dict[int, Dict[str, float]] = get_sum_of_metrics(
         metrics,
         error_metrics
     )
     print("Printing total error metrics for all experiments")
-    for threshold, error_values_sum in _sum.items():
-        # this contains the sumf of FP TP FN TN for 1 threshold
-        error_values_sum: Dict[str, float]
+    # example of error_rates = {1: {'MCC': 0, 'FPR': 0.2, etc..}}
+    error_rates: Dict[int, Dict[str, float]] = {}
+    for threshold, confusion_matrix_sum in (
+            sum_of_confusion_matrix_per_threshold.items()
+    ):
+        # this contains the sum of FP TP FN TN for 1 threshold
+        confusion_matrix_sum: Dict[str, float]
         
         print(f"\nThreshold: {threshold}:")
-        # print the error vaues only , tp fp tn and fn.
-        print_metrics_summary(error_values_sum)
+        # print the error values only , tp fp tn and fn.
+        print_metrics_summary(confusion_matrix_sum)
 
         # now calc the TPR TNR FPR MCC etc. using the total fp fn tp tn
-        # from error_values_sum.
+        # from confusion_matrix_sum.
         calc = Calculator("slips", f'/tmp/slips_threshold_{threshold}')
-        # get the sum of tn tp fp fn for this threshold considering all
-        # experiments
-        calc.metrics = error_values_sum.copy()
-        print_metrics_summary(calc.calc_all_metrics())
-
+        calc.metrics = confusion_matrix_sum.copy()
+        # store the FPR TNR MCC F1 score etc. ofthe above confusion_matrix_sum
+        error_rates.update(
+            { threshold: calc.calc_all_metrics() }
+        )
+        print_metrics_summary(error_rates[threshold])
         print_line()
         
-    print("Best/Worst thresholds so far")
-    print_extremes(get_extremes(error_metrics, _sum))
-    print_line()
+    
+    print_extremes(get_extremes(
+        error_metrics,
+        sum_of_confusion_matrix_per_threshold
+        ))
+    
     
     if args.plot:
         plot = Plot()
         plot.line(
-            _sum,
+            sum_of_confusion_matrix_per_threshold,
             "Sum of Errors Over Thresholds"
             )
+        plot.line(
+            error_rates,
+            "Error Rates Over Thresholds"
+        )
         
         
 
