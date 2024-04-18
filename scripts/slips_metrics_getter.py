@@ -11,8 +11,8 @@ from pprint import pp
 from argparse import ArgumentParser
 
 from plot.plot import Plot
-from scripts.extracted_levels import extracted_threat_levels
-from scripts.extracted_gt_tw_labels import gt_tw_labels
+from scripts.extracted_scores.extracted_levels import extracted_threat_levels
+from scripts.extracted_scores.extracted_gt_tw_labels import gt_tw_labels
 from metrics.calculator import Calculator
 
 
