@@ -211,13 +211,16 @@ class Calculator(IObservable):
             self.log(f"{self.tool}: TPR: ", tpr)
         return tpr
 
-    def FNR(self):
+    def FNR(self) -> float:
         """
-        FNR = 1- TPR
+        FNR = FN / (FN + TP)
         prints the false negative rate of a given tool
-        :return: float
         """
-        fnr = 1 - self.TPR(log=False)
+        try:
+            fnr = self.metrics["FN"] / (self.metrics["FN"] + self.metrics["TP"])
+        except ZeroDivisionError:
+            fnr = 0
+
         self.log(f"{self.tool}: FNR: ", fnr)
         return fnr
 
