@@ -69,7 +69,7 @@ def print_extremes(threshold_with_min_max: Dict[str, Dict]):
     """
     Print the extreme values for each metric and their corresponding thresholds.
     """
-    print("Best/Worst thresholds so far")
+    print("Below are the minimum and maximum of the 4 error metrics with the threshold that resulted in them.")
     for metric, info in threshold_with_min_max.items():
         print(f"{metric}:")
         print(f"  Min value: {info['min_value']}, Threshold: {info['min_threshold']}")
