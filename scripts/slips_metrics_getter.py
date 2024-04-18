@@ -232,14 +232,13 @@ def main():
             # calc.calc_all_metrics()
             experiment_metrics = {
                     'MCC': calc.MCC(),
-                    'recall': calc.recall(),
                     'precision': calc.precision(),
-                    'F1': calc.F1(),
                     'FPR': calc.FPR(),
                     'TPR': calc.TPR(),
                     'FNR': calc.FNR(),
                     'TNR': calc.TNR(),
                     'accuracy': calc.accuracy(),
+                    'F1': calc.F1(),
                 }
             experiment_metrics.update(confusion_matrix)
             metrics[threshold].update({exp: experiment_metrics})

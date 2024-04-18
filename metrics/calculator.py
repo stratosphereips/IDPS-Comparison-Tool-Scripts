@@ -167,7 +167,7 @@ class Calculator(IObservable):
         """
 
         precision = self.metrics['precision']
-        recall = self.metrics['recall']
+        recall = self.TPR(log=False)
         if precision + recall == 0:
             f1 = 0
         else:
@@ -207,6 +207,7 @@ class Calculator(IObservable):
             tpr = 0
         else:
             tpr = self.metrics['TP'] / (self.metrics['TP'] + self.metrics['FN'])
+
         if log:
             self.log(f"{self.tool}: TPR: ", tpr)
         return tpr
@@ -265,7 +266,6 @@ class Calculator(IObservable):
             self.FNR,
             self.TPR,
             self.TNR,
-            self.recall,
             self.precision,
             self.F1,
             self.accuracy,
@@ -273,6 +273,4 @@ class Calculator(IObservable):
         ):
             res.update({metric.__name__ : metric()})
         return res
-    # def __del__(self):
-        # if hasattr(self, 'db'):
-        #     self.db.close()
+
