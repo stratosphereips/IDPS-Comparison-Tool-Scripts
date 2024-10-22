@@ -19,6 +19,8 @@ from pprint import pp
 tws = {}
 alertsjson = sys.argv[1]
 srcip = sys.argv[2]
+# slips detection threshold used for generating this alerts.json
+used_threshold = sys.argv[3]
 
 def count_and_print_duplicate_scores(scores: list):
     """
@@ -73,8 +75,13 @@ def print_json_max_accumulated_score(
     """
     prints this dict
     {filename: { 'twid': max_acc_threat_level }}
+    :param sorted_tws: dict with sorted tws as keys and a list of tw
+    threat levels as values
+    e.g {
+        1: [2, 3, 4, 5, 2, 2, 0],
+        2: [1, 2, 3]}
     """
-    res = {alertsjson: {} }
+    res = {alertsjson: {}}
     for timewindow, scores in sorted_tws.items():
         timewindow: int
         scores: list
@@ -104,31 +111,35 @@ def get_attackers(line: dict, ip_version: str) -> List[str]:
         return []
 
 
-ip_version: str = get_ip_version(srcip)
+def read_alerts_json():
+    ip_version: str = get_ip_version(srcip)
+    with open(alertsjson) as f:
+        lines_ctr = 0
+        while line := f.readline():
+            lines_ctr += 1
+            line: dict = json.loads(line)
+            attackers: List[str] = get_attackers(line, ip_version)
+    
+            if srcip not in attackers:
+                # we only need evidence done by the given srcip
+                continue
+    
+            tl = line['accumulated_threat_level']
+            twid = line['timewindow']
+    
+            if twid not in tws:
+                tws.update({twid :  [tl]})
+            else:
+                tws[twid].append(tl)
+    #print(f"total alerts.json lines read: {lines_ctr}")
+    return tws
 
-with open(alertsjson) as f:
-    lines_ctr = 0
-    while line := f.readline():
-        lines_ctr += 1
-        line: dict = json.loads(line)
-        attackers: List[str] = get_attackers(line, ip_version)
-
-        if srcip not in attackers:
-            # we only need evidence done by the given srcip
-            continue
-
-        tl = line['accumulated_threat_level']
-        twid = line['timewindow']
-
-        if twid not in tws:
-            tws.update({twid :  [tl]})
-        else:
-            tws[twid].append(tl)
-
-
-#print(f"total alerts.json lines read: {lines_ctr}")
-
+tws = read_alerts_json()
+# sort the dict keys
 sorted_tws = dict(sorted(tws.items()))
+print_json_max_accumulated_score(sorted_tws)
+
+
 
 
 # for twid, scores in sorted_tws.items():
@@ -139,4 +150,3 @@ sorted_tws = dict(sorted(tws.items()))
     #print_max_accumulated_score(scores)
     # pass
 
-print_json_max_accumulated_score(sorted_tws)
