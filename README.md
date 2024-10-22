@@ -34,7 +34,7 @@ pip3 install -r requirements.txt
 ##### command for extracting max accumulated threat level for all timewindows from an alert.json 
 
 ```
-python3 -m scripts.max_accumulated_score_extractor_for_slips alerts.json <host_ip>
+python3 -m scripts.max_accumulated_score_extractor_for_slips alerts.json <host_ip> <used_slips_threshold>
 ```
 
 
@@ -53,6 +53,8 @@ python3 -m scripts.slips_metrics_getter
 python3 -m scripts.slips_metrics_getter  -p
 ```
 
+Note: To print and plot the metrics, scripts/extracted_scores/extracted_levels.py must t be updated using the
+max_accumulated_score_extractor_for_slips.py script
 
 ##### command for extracting ground truth labels from a conn.log.labeled file
 note: we only extract the labels per timewindow per ip
