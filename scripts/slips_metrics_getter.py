@@ -11,8 +11,8 @@ from pprint import pp
 from argparse import ArgumentParser
 
 from plot.plot import Plot
-from scripts.extracted_levels import extracted_threat_levels
-from scripts.extracted_gt_tw_labels import gt_tw_labels
+from scripts.extracted_scores.extracted_levels import extracted_threat_levels
+from scripts.extracted_scores.extracted_gt_tw_labels import gt_tw_labels
 from metrics.calculator import Calculator
 
 
@@ -69,7 +69,7 @@ def print_extremes(threshold_with_min_max: Dict[str, Dict]):
     """
     Print the extreme values for each metric and their corresponding thresholds.
     """
-    print("Best/Worst thresholds so far")
+    print("Below are the minimum and maximum of the 4 error metrics with the threshold that resulted in them.")
     for metric, info in threshold_with_min_max.items():
         print(f"{metric}:")
         print(f"  Min value: {info['min_value']}, Threshold: {info['min_threshold']}")
@@ -232,14 +232,13 @@ def main():
             # calc.calc_all_metrics()
             experiment_metrics = {
                     'MCC': calc.MCC(),
-                    'recall': calc.recall(),
                     'precision': calc.precision(),
-                    'F1': calc.F1(),
                     'FPR': calc.FPR(),
                     'TPR': calc.TPR(),
                     'FNR': calc.FNR(),
                     'TNR': calc.TNR(),
                     'accuracy': calc.accuracy(),
+                    'F1': calc.F1(),
                 }
             experiment_metrics.update(confusion_matrix)
             metrics[threshold].update({exp: experiment_metrics})
