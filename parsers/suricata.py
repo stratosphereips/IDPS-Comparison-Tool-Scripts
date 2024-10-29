@@ -1,5 +1,4 @@
 from utils.timestamp_handler import TimestampHandler
-from parsers.config import ConfigurationParser
 from utils.hash import Hash
 from abstracts.parsers import Parser
 
@@ -22,8 +21,7 @@ class SuricataParser(Parser):
 
 
     def read_config(self):
-        config = ConfigurationParser('config.yaml')
-        self.twid_width = float(config.timewindow_width())
+        self.twid_width = 3600
 
     def extract_flow(self, line: str) -> dict:
         """
@@ -68,8 +66,10 @@ class SuricataParser(Parser):
 
     def print_stats(self):
         self.log('', "-" * 30)
-        self.log(f"Total malicious labels: ", self.db.get_flows_count('suricata', 'malicious'))
-        self.log(f"Total benign labels: ", self.db.get_flows_count('suricata', 'benign'))
+        self.log(f"Total malicious labels: ",
+                 self.db.get_flows_count('suricata', 'malicious'))
+        self.log(f"Total benign labels: ",
+                 self.db.get_flows_count('suricata', 'benign'))
         self.log('', "-" * 30)
 
         print()
@@ -86,7 +86,6 @@ class SuricataParser(Parser):
                 if event_type not in ('flow', 'alert'):
                     # only read benign flows and alert events
                     continue
-
 
                 flow: dict = self.extract_flow(line)
                 original_ts = flow['timestamp']
