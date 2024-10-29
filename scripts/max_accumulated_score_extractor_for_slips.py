@@ -20,11 +20,6 @@ from pprint import pp
 tws = {}
 alertsjson = sys.argv[1]
 srcip = sys.argv[2]
-# slips detection threshold used for generating this alerts.json
-# https://stratospherelinuxips.readthedocs.io/en/develop/features.html#controlling-slips-sensitivity
-used_threshold = float(sys.argv[3])
-tw_width = 3600
-detection_threshold_per_tw = used_threshold * tw_width / 60
 
 
 
@@ -76,28 +71,28 @@ def accumulate_threat_levels(
     using 999999
     it works around the resetting of threshold that slips does
     """
-    
     res = {alertsjson: {}}
     for timewindow, scores in sorted_tws.items():
         timewindow: int
         scores: List[float]
-        number_of_threashold_reaches = scores.count(
-            detection_threshold_per_tw)
-        max_acc_threat_level = (
-                number_of_threashold_reaches * detection_threshold_per_tw)
-        # get the idx of the last acc threat level of the last alert.
-        # after that index, no more alerts were generated, so the acc
-        # thraet level was never reset afterwards
-        last_occ = get_index_of_last_occurrence(scores,
-                                            detection_threshold_per_tw)
-        if last_occ != len(scores) - 1:
-            max_acc_threat_level += max(scores[last_occ+1:])
-        else:
-            # there are no accumulated thresholds that never triggered an
-            # alert
-            ...
+        acc_threat_level = 0
+        for i in range(len(scores)):
+            cur = scores[i]
+            try:
+                nxt = scores[i+1]
+            except IndexError:
+                # cur is the last element in the list
+                acc_threat_level += cur
+                break
+                
+            # basically, when we find a number thats lower than the one
+            # before it, we accumulate the one before it to the total acc
+            # threat level
+            if nxt >= cur:
+                continue
+            acc_threat_level += cur
         
-        res[alertsjson].update({timewindow: max_acc_threat_level})
+        res[alertsjson].update({timewindow: acc_threat_level})
     return res
     
 def get_attacker(line: dict) -> str:
@@ -131,13 +126,11 @@ def read_alerts_json():
 
 
 tws = read_alerts_json()
-# sort the dict keys
+# sort the dict keys (sort by timewindows)
 sorted_tws = dict(sorted(tws.items()))
+
 accumulated_threat_levels: Dict[int, float]
-if used_threshold > 99999:
-    accumulated_threat_levels = get_max_accumulated_score(sorted_tws)
-else:
-    accumulated_threat_levels = accumulate_threat_levels(sorted_tws)
+accumulated_threat_levels = accumulate_threat_levels(sorted_tws)
 pp(accumulated_threat_levels)
 
 
