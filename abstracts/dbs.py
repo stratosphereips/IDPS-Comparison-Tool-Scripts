@@ -48,9 +48,8 @@ class IDB(IObservable, ABC ):
         Creates the db if it doesn't exist and connects to it
         sets the db_newly_created to True if the db didn't already exist
         """
-        if self.path:
-            if not path.exists(self.path):
-                raise(f"Invalid databse path: {self.path}")
+        if self.path and not path.exists(self.path):
+            raise f"Invalid databse path: {self.path}. Path doesn't exist."
         elif self.output_dir:
             self.path = path.join(self.output_dir, 'db.sqlite')
             if not path.exists(self.path):

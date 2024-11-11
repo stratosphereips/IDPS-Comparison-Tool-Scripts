@@ -1,14 +1,25 @@
+import sys
+import traceback
+from pprint import pp
+
 import utils.timestamp_handler
-from typing import Tuple, Dict, List
+from typing import (
+    Tuple,
+    List,
+    Optional,
+    Union,
+    Dict,
+    )
 from re import findall
 from parsers.config import ConfigurationParser
 from utils.timewindow_handler import TimewindowHandler
+from utils.file_handler import validate_path
 from utils.hash import Hash
 from abstracts.parsers import Parser
 from re import split
 import json
 import os
-from pprint import pp
+
 
 # these are the files that slips doesn't read
 IGNORED_LOGS = {
@@ -43,30 +54,31 @@ class GroundTruthParser(Parser):
     tool_name = "ground_truth"
     is_first_flow = True
 
-    def init(self,
-             ground_truth=None,
-             ground_truth_type=None,
-             srcip: str=''):
-        # srcip to extract the tw labels for
-        self.srcip = srcip
-        # ground_truth_type can either be 'dir' or 'file'
-        if ground_truth_type == 'dir':
+    def init(self, args: list):
+        ground_truth = args[0]
+        self.srcip = args[1]
+        self.gt_zeek_dir = None
+        self.gt_zeek_file = None
+        if os.path.isdir(ground_truth):
             # zeek dir with ground truth labels
             self.gt_zeek_dir: str = ground_truth
-        elif ground_truth_type == 'file':
+        else:
             self.gt_zeek_file  = ground_truth
-
-        # check th etype of the given zeek file/dir with
+        if not validate_path(self.gt_zeek_dir or self.gt_zeek_file):
+            raise TypeError(f"Invalid GT path"
+                            f" {self.gt_zeek_dir or self.gt_zeek_file}")
+        # check the type of the given zeek file/dir with
         # ground truth labels. 'tab-separated' or 'json'?
         self.zeek_file_type: str = self.check_type()
         self.read_config()
         self.timestamp_handler = utils.timestamp_handler.TimestampHandler()
         self.tw_labels: Dict[int, str] = {}
 
-    def read_config(self):
-        config = ConfigurationParser('config.yaml')
-        self.twid_width = float(config.timewindow_width())
 
+    def read_config(self):
+        config = ConfigurationParser("config.yaml")
+        self.twid_width = float(config.timewindow_width())
+    
     def extract_tab_fields(self, line):
         try:
             return {
@@ -120,21 +132,28 @@ class GroundTruthParser(Parser):
 
         return flow
 
-    def get_flow(self, line):
+    def get_flow(self, line) -> Optional[dict]:
         """
         given a tab or json line, extracts the src and dst addr, sport and
         proto from the line
         :param line: is a str if the type of given file is tab separated, or
          a dict if it's json
-        :return: dict with {'saddr', 'sport':.. , 'daddr', 'proto'}
+        :return: dict with {'saddr', 'sport':.. , 'daddr', 'proto'} or
+        None when there's a problem extracting flow
         """
+        if len(line) < 5:
+            # invalid line
+            return
+        
         if self.zeek_file_type == 'json':
             flow: dict = self.extract_json_fields(line)
         elif self.zeek_file_type == 'tab-separated':
             flow: dict = self.extract_tab_fields(line)
-
+        else:
+            return
+        
         if not flow:
-            return False
+            return
 
         flow = self.handle_icmp(flow)
         return flow
@@ -146,15 +165,13 @@ class GroundTruthParser(Parser):
         :return: malicious, benign or unknown
         """
         pattern = r"Malicious[\s\t]+"
-        matches = findall(pattern, line)
-        if matches:
+        if findall(pattern, line):
             return 'malicious'
 
         pattern = r"Benign[\s\t]+"
-        matches = findall(pattern, line)
-        if matches:
+        if findall(pattern, line):
             return 'benign'
-
+        
         return 'unknown'
 
     def update_labels_ctr(self, label: str):
@@ -177,29 +194,30 @@ class GroundTruthParser(Parser):
         try:
             line = json.loads(line)
         except json.decoder.JSONDecodeError:
-            self.log(f"Error loading line: \n{line}",'')
+            self.log(f"Error loading line: \n",'line', error=True)
             return False
 
         aid = self.handle_getting_aid(line)
         if not aid:
             return False
 
-        label =  line.get('label', '')
+        label = line.get('label', '')
         self.update_labels_ctr(label)
 
         return label, aid, line['ts'], line['id.orig_h']
 
-    def handle_getting_aid(self, line: list):
+    def handle_getting_aid(self, line: list) -> Optional[str]:
         # first extract fields
         if flow := self.get_flow(line):
             # we managed to extract the fields needed to calc the community id
             return self.hash.get_aid(flow)
-        return False
+        return
 
-    def handle_zeek_tabs(self, line:str) -> Tuple[str,str,str,str]:
+    def handle_zeek_tabs(self, line:str) -> Optional[Tuple[str,str,str,str]]:
         """
         :param line: tab separated line as read from the zeek file
-        :return: returns a tuple of label, aid ts and srcip
+        :return: returns a tuple of label, aid ts and srcip or None if
+        unable to extract the flow
         """
         label = self.extract_label_from_line(line)
         self.update_labels_ctr(label)
@@ -209,61 +227,88 @@ class GroundTruthParser(Parser):
         # spaces so we can't use python's split()
         # using regex split, split line when you encounter more than 2 spaces
         # in a row
-        line = line.split('\t') if '\t' in line else split(r'\s{2,}', line)
+        line: List[str] = line.split('\t') if (
+                '\t' in line) \
+            else split(r'\s{2,'r'}', line)
 
         aid = self.handle_getting_aid(line)
         if not aid:
-            return False
+            return
 
         return label, aid, line[0], line[2]
-
-    def extract_fields(self, line: str) -> dict:
+        
+    def extract_fields(self, line: str) -> Tuple[Union[bool,dict], str]:
         """
         extracts the label and community id from the given line
-        uses zeek_file_type to extract fields based on the type of the given zeek dir
+        uses zeek_file_type to extract fields based on the type of the given
+         zeek dir
+        completely ignores gt flows that have labels other than benign or
+        malicious
         :param line: line as read from the zeek log file
-        :return: returns a flow dict with {'aid': ..., 'label':...}
+        :return:
+        If it managed to extract the flow, returns the
+            extracted flow dict and no errors
+        If not, returns False and the error
         """
         if self.zeek_file_type == 'json':
-            #TODO this wasn't tested before ok?
             flow = self.handle_zeek_json(line)
         elif self.zeek_file_type == 'tab-separated':
             flow = self.handle_zeek_tabs(line)
-
+        
+        if not flow:
+            return False, "Invalid flow"
+        
         try:
+            if flow[0] == "unknown":
+                label = "background" if "Background" in line else ""
+                return False, f"Unsupported flow label {label}"
+
             return {
                'label':  flow[0],
                'aid': flow[1],
                'timestamp': flow[2],
                'srcip': flow[3],
-            }
-        except (IndexError, TypeError):
-            # one of the above 2 methods returned an invalid line!
-            return False
+            }, ""
+        except (IndexError, TypeError) as e:
+            # one of the above 2 methods failed to parse the given line
+            return False, f"Problem extracting flow: {line} .. {e}"
 
 
-    def register_timewindow(self, ts):
+    def register_timewindow(self, ts) -> dict:
         """
-        registers a new timewindow if the ts doesn't belong t an existing one
-        sets the current self.tw_number
+        registers a new timewindow if the ts doesn't belong to
+         an existing one.
         :param ts: unix ts of the flow being parsed
+        returns the number of the registered tw and a bool indicating
+        whether the tw was registered before or not
         """
         ts = float(ts)
 
         if self.is_first_flow:
             self.is_first_flow = False
+            # first timestamp ever seen in the gt conn.log will be
+            # the start of tw1
             self.twid_handler = TimewindowHandler(ts)
-            self.tw_number = 1
+            tw_number = 1
         else:
             # let the db decide which tw this is
             # tw number may be negative if a flow is found with a ts < ts
             # of the first flow seen
-            self.tw_number: int = self.db.get_timewindow_of_ts(ts)
+            tw_number: int = self.db.get_timewindow_of_ts(ts)
 
         tw_start, tw_end = self.twid_handler.get_start_and_end_ts(
-            self.tw_number
+            tw_number
             )
-        self.db.register_tw(self.tw_number, tw_start, tw_end)
+        
+        is_labeled_for_the_first_time: bool = self.db.register_tw(
+            tw_number,
+            tw_start,
+            tw_end)
+        self.tw_number = tw_number
+        return {
+            'tw_number': tw_number,
+            'was_registered_before': not is_labeled_for_the_first_time
+            }
 
     def get_full_path(self, filename: str) -> str:
         """
@@ -277,74 +322,113 @@ class GroundTruthParser(Parser):
 
         # this tool is given a zeek logfile and the path of it is abs
         return filename
+    
+        
+    def was_tw_registered(self, tw: int) -> bool:
+        return self.db.is_registered_timewindow(tw)
+    
+    def should_label_tw(self, tw: int, flow: dict) -> (
+            bool):
+        """
+        determines whether to label the tw or not if:
+        1. tw wasnt labeled before for the same IP
+        2. twand ip was labeled before as benign and now the label is
+        malicious
+        
+        if the tw was labeled before as malicious and now it's benign,
+        we don't update the label.
+        
+        :param tw: tw number
+        :param flow: dict with the srcip and label
+        :return: whether or not the current label of this tw should be
+        added to the db
+        """
+        labeled_b4 = self.db.was_tw_labeled_before(
+            tw, flow['srcip'], self.tool_name
+        )
+        
+        if not labeled_b4:
+            # first label for this tw and this IP
+            return True
 
+        if flow['label'] == 'malicious':
+            return True
+        return False
+        
 
-    def label_tw(self, flow: dict):
-        """ labels gt by TW in the db """
-
-        # register a tw as soon as it is encountered with the label of the
-        # first flow,
-        # if it's benign, we will only change that label when a malicious
-        # flow is found
-        # if the first flow is malicious, then no need to change the label to
-        # benign when a benign flow is found
-
-        # re-register it as malicious if one malicious flow was
-        # found in an already registered tw
-        if (
-                self.tw_number not in self.registered_tws
-                or
-                flow['label'] == 'malicious'
-        ):
-            self.registered_tws.append(self.tw_number)
-
-            self.db.set_tw_label(
-                flow['srcip'],
-                self.tool_name,
-                self.tw_number,
-                flow['label']
-            )
+    def label_tw(self, flow: dict, tw_registration_stats: dict):
+        """
+        labels the timewindow in the db
+        :param flow: flow to extract the tw label from
+        :param tw_registration_stats: fict with the following keys
+             tw: tw number
+             was_registered_before: bool indicating with whether the tw was
+            registered before in the db or not
+        """
+        if not self.should_label_tw(
+                tw_registration_stats["tw_number"],
+                flow
+            ):
+            return False
+        
+        self.db.set_gt_label_for_tw(
+            flow['srcip'],
+            tw_registration_stats["tw_number"],
+            flow['label']
+        )
 
 
     def parse_file(self, filename: str):
         """
-        extracts the label and community id from each flow and stores them in the db
-        :param filename: the name of the logfile without the path, for example conn.log
+        extracts the label and community id from each flow and stores them
+         in the db
+        Completely ignores flows that dont have benign or malicious in
+        their labels, e.g background flows
+        :param filename: the name of the zeek logfile without the path,
+        for example conn.log
         this can be the file given to this tool using -gtf or 1 file
          from the zeek dir given to this tool
         """
-
         fullpath = self.get_full_path(filename)
-
         self.total_flows_read = 0
-        with open(fullpath, 'r') as f:
-            while line := f.readline():
-                # skip comments
-                if line.startswith('#'):
-                    continue
+        gt_file = open(fullpath)
+        line_number = 0
+        while line := gt_file.readline():
+            line_number += 1
+            # skip comments
+            if line.startswith('#'):
+                continue
+            
+            flow, err = self.extract_fields(line)
+            if not flow:
+                # self.log(f"{err}. Skipping flow at line: ",
+                #          line_number,
+                #          error=True)
+                continue
+            
+            tw_registration_stats: dict = self.register_timewindow(
+                flow['timestamp']
+                )
+            self.label_tw(
+                flow,
+                tw_registration_stats
+                )
+            old_label = self.tw_labels.get(self.tw_number, '')
+            if (
+                    flow['srcip'] == self.srcip
+                    and old_label != 'malicious'):
+                # if the label is malicious, don't change it to normal
+                self.tw_labels.update({self.tw_number: flow['label']})
 
-                flow = self.extract_fields(line)
-                if not flow:
-                    continue
+            self.total_flows_read += 1
 
-                self.register_timewindow(flow['timestamp'])
-                self.label_tw(flow)
+            self.db.store_ground_truth_flow(flow)
+            self.db.store_flow(flow, self.tool_name)
+            # used for printing the stats in the main.py
+            self.db.store_flows_count(self.tool_name, self.total_flows_read)
 
-                old_label = self.tw_labels.get(self.tw_number, '')
-                if (
-                        flow['srcip'] == self.srcip
-                        and old_label != 'malicious'):
-                    # if the label is malicious, don't change it to normal
-                    self.tw_labels.update({self.tw_number: flow['label']})
-
-                self.total_flows_read += 1
-
-                self.db.store_ground_truth_flow(flow)
-                self.db.store_flow(flow, self.tool_name)
-                # used for printing the stats in the main.py
-                self.db.store_flows_count(self.tool_name, self.total_flows_read)
-
-
+        gt_file.close()
+        
     def log_stats(self):
         print('\n')
         self.log('', "-" * 30)
@@ -358,6 +442,9 @@ class GroundTruthParser(Parser):
         self.log(f"Total unknown labels: ", self.unknown_labels)
         self.log('', "-" * 30)
 
+        total_tws = self.db.get_tws_count()
+        self.log(f"Total registered timewindows by the ground truth: ",
+                 f"{total_tws}. ")
         print()
 
     def get_line_type(self, log_file_path: str):
@@ -385,7 +472,7 @@ class GroundTruthParser(Parser):
         checks if the given dir is json or tab seperated zeek dir
         :Return: 'tab-separated' or 'json'
         """
-        if hasattr(self, 'gt_zeek_dir'):
+        if self.gt_zeek_dir:
             # open the first logfile you see in this dir
             for f in os.listdir(self.gt_zeek_dir):
                 if self.is_ignored(f):
@@ -395,7 +482,7 @@ class GroundTruthParser(Parser):
                 if os.path.isfile(full_path):
                     type_ = self.get_line_type(full_path)
                     break
-        elif hasattr(self, 'gt_zeek_file'):
+        elif self.gt_zeek_file:
             type_ = self.get_line_type(self.gt_zeek_file)
 
         return type_
@@ -413,22 +500,20 @@ class GroundTruthParser(Parser):
         """
         parses the given zeek dir or zeek logfile
         """
-        if hasattr(self, 'gt_zeek_dir'):
+        if self.gt_zeek_dir:
             for log_file in os.listdir(self.gt_zeek_dir):
                 if self.is_ignored(log_file):
                     continue
                 # extract fields and store them in the db
                 self.parse_file(log_file)
 
-        elif hasattr(self, 'gt_zeek_file'):
+        elif self.gt_zeek_file:
             # extract fields and store them in the db
             self.parse_file(self.gt_zeek_file)
 
-        # self.log_stats()
         print(" ")
+        print(self.gt_zeek_file.replace("/conn.log.labeled",""))
         sorted_dict = dict(sorted(self.tw_labels.items()))
         pp(sorted_dict)
         print(" ")
-
-
 

@@ -12,7 +12,7 @@ class Parser(IObservable):
     def __init__(self,
                  output_dir: str,
                  results_path: Optional[str]=None,
-                 **kwargs):
+                 *args):
         super(Parser, self).__init__()
         # init the logger
         self.results_path = results_path
@@ -23,22 +23,28 @@ class Parser(IObservable):
         Process.__init__(self)
         self.db = SQLiteDB(output_dir)
 
-        self.init(**kwargs)
+        self.init(args)
 
     @abstractmethod
-    def init(self, **kwargs):
+    def init(self, *args):
         """
         the goal of this is to have one common __init__()
         for all modules, which is the one in this file
         this init will have access to all keyword args passes
          when initializing the module
         """
-
-    def log(self, green_txt, normal_txt, log_to_results_file=True, end="\n"):
+    
+    def read_configuration(self):
+        """extracts the values the parser is going to use from config.yaml"""
+        ...
+    
+    def log(self, colored_txt, normal_txt, log_to_results_file=True,
+            end="\n", error=False):
         """
         gives the txt to the logger to log it to stdout and results.txt
         """
-        self.notify_observers((normal_txt, green_txt, log_to_results_file, end))
+        self.notify_observers((normal_txt, colored_txt, log_to_results_file,
+                               end, error))
 
     @abstractmethod
     def parse(self):
