@@ -64,5 +64,11 @@ python3 main.py -gtf conn.log.labeled -i <host_ip>
 ```
 
 
+* To extract the ground truth timewindow labels
+
+    python3 -m scripts.ground_truth_timewindow_labels_extractor -gtf conn.log.labeled -i 147.32.83.234
+
+
+
 # About
 This repo was developed at the Stratosphere Laboratory at the Czech Technical University in Prague.
