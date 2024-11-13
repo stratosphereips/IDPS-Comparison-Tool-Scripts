@@ -40,8 +40,10 @@ python3 -m scripts.max_accumulated_score_extractor_for_slips alerts.json <host_i
 
 ##### command for getting the best slips threshold given the extracted ground truth labels and max accumulated scores
 
-note: this script assumes the correct ground truth labels are in scripts/extracted_gt_tw_labels.py
+Note: this script assumes the correct ground truth labels are in scripts/extracted_gt_tw_labels.py
 and the correct max accumulated scores of slips are in scripts/extracted_levels.py 
+
+Note: This script completely discards flows and timewindows with any label other than benign or malicious, e.g. background, unknown label, no label etc.
 
 * to print the metrics to cli
 ```
