@@ -35,10 +35,11 @@ def is_tw_malicious(experiment: str, timewindow: int) -> bool:
         # we consider the gt label of it as "benign"
         return gt_tw_labels[experiment][timewindow] == 'malicious'
     else:
-        # we don't have  lable for this timewindow, probably because there
-        # was no flows by host in this timewindow
+        # we don't have label for this timewindow, probably because there
+        # was no flows by host in this timewindow, OR all the flows have
+        # a "background" or "unknown" labels
         # print(f"problem getting the label of {experiment} {timewindow},")
-        return False
+        raise ValueError
 
 def print_metrics_summary(metrics: Dict[str, float]):
     """
@@ -126,8 +127,12 @@ def get_confusion_metrics(exp: str,
         twid: str
         max_threat_level: float
         # get the gt label of this twid
-        malicious: bool = is_tw_malicious(exp, int(twid))
-
+        try:
+            malicious: bool = is_tw_malicious(exp, int(twid))
+        except ValueError:
+            # discard timewindows with no label or "background" label
+            continue
+            
         if malicious:
             if max_threat_level >= threshold:
                 tp += 1
