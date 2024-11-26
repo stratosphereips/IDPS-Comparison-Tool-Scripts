@@ -214,38 +214,58 @@ def get_extremes(metrics_to_sum: List[str], _sum: Dict[int, Dict[str, float]]):
     return threshold_with_min_max
 
 
+def get_experiments_metrics_for_threshold(threshold: float):
+    """
+    returns
+     {{exp1: metrics, exp2: metrics, ....},
+    """
+    res = {}
+    for exp, scores in extracted_threat_levels.items():
+        exp: str
+        # these are the scores detected by slips
+        scores: Dict[str, float]
 
-def get_metrics_for_each_threshold_for_all_experiments():
+        confusion_matrix: Dict[str, float] = get_confusion_metrics(
+            exp, scores, threshold
+        )
+        calc = Calculator("slips", f'/tmp/slips_threshold_{threshold}')
+        calc.metrics = confusion_matrix
+
+        # put all the metrics + confusion metrics in one dict
+        experiment_metrics = {
+                'MCC': calc.MCC(),
+                'precision': calc.precision(),
+                'FPR': calc.FPR(),
+                'TPR': calc.TPR(),
+                'FNR': calc.FNR(),
+                'TNR': calc.TNR(),
+                'accuracy': calc.accuracy(),
+                'F1': calc.F1(),
+            }
+        experiment_metrics.update(confusion_matrix)
+        res.update({ exp: experiment_metrics})
+    return res
+
+
+def get_metrics_for_each_threshold_for_all_experiments(
+        thresholds_range: range):
+    """
+    returns
+     {1: {exp1: metrics, exp2: metrics},
+     2: {exp1: metrics, exp2: metrics}
+    """
     metrics_for_each_threshold_for_all_experiments: \
         Dict[int, Dict[str, Dict[str, float]]] = {}
 
-    for threshold in THRESHOLDS_TO_BRUTEFORCE:
-        metrics_for_each_threshold_for_all_experiments[threshold] = {}
-
-        for exp, scores in extracted_threat_levels.items():
-            exp: str
-            # these are the scores detected by slips
-            scores: Dict[str, float]
-
-            confusion_matrix: Dict[str, float] = get_confusion_metrics(
-                exp, scores, threshold
-            )
-            calc = Calculator("slips", f'/tmp/slips_threshold_{threshold}')
-            calc.metrics = confusion_matrix
-            # calc.calc_all_metrics()
-            experiment_metrics = {
-                    'MCC': calc.MCC(),
-                    'precision': calc.precision(),
-                    'FPR': calc.FPR(),
-                    'TPR': calc.TPR(),
-                    'FNR': calc.FNR(),
-                    'TNR': calc.TNR(),
-                    'accuracy': calc.accuracy(),
-                    'F1': calc.F1(),
-                }
-            experiment_metrics.update(confusion_matrix)
-            metrics_for_each_threshold_for_all_experiments[threshold].update(
-                { exp: experiment_metrics})
+    for threshold in thresholds_range:
+        # for each experiment, what are the TPR, FPR, MCC, FP, etc. that
+        # slips would detect if used the given threshold?
+        metrics: Dict[str, Dict[str, float]]
+        metrics = get_experiments_metrics_for_threshold(threshold)
+        
+        # store it in a dict
+        metrics_for_each_threshold_for_all_experiments[threshold] = metrics
+    
     return metrics_for_each_threshold_for_all_experiments
 
 
@@ -286,7 +306,8 @@ def main():
 
 
     metrics_for_each_threshold_for_all_experiments = \
-    get_metrics_for_each_threshold_for_all_experiments()
+    get_metrics_for_each_threshold_for_all_experiments(
+        THRESHOLDS_TO_BRUTEFORCE)
     
 
     # prints {1: {exp1: metrics, exp2: metrics},
