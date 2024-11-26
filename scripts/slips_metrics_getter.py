@@ -16,7 +16,7 @@ from scripts.extracted_scores.extracted_gt_tw_labels import gt_tw_labels
 from metrics.calculator import Calculator
 
 
-THRESHOLDS_TO_BRUTEFORCE = range(1, 400)
+THRESHOLDS_TO_BRUTEFORCE = range(1, 20)
 
 def print_line():
     print("-"*20)
@@ -77,14 +77,13 @@ def print_extremes(threshold_with_min_max: Dict[str, Dict]):
         print(f"  Max value: {info['max_value']}, Threshold: {info['max_threshold']}")
     print_line()
 
-def get_sum_of_metrics(
+def get_sum_of_metrics_per_threshold(
     metrics: Dict[int, Dict[str, Dict[str, float]]],
     metrics_to_sum: List[str]
     ) -> Dict[int, Dict[str, float]]:
     """
     prints the sum of all tp fp tn fn for all experiments using all
     thresholds
-    and the min fp and fn and the max tp nd tn
     :param metrics: is something like this
     {
         1: {exp1: {TP: 0, FP: 0, TN: 0, FN:}, 'exp2':...}
@@ -213,16 +212,15 @@ def get_extremes(metrics_to_sum: List[str], _sum: Dict[int, Dict[str, float]]):
     for threshold, metric_sum in _sum.items():
         update_extremes(threshold, metric_sum, threshold_with_min_max)
     return threshold_with_min_max
-    
-def main():
-    
-    args = parse_args()
-    expirements_number = len(extracted_threat_levels)
 
-    metrics: Dict[int, Dict[str, Dict[str, float]]] = {}
+
+
+def get_metrics_for_each_threshold_for_all_experiments():
+    metrics_for_each_threshold_for_all_experiments: \
+        Dict[int, Dict[str, Dict[str, float]]] = {}
 
     for threshold in THRESHOLDS_TO_BRUTEFORCE:
-        metrics[threshold] = {}
+        metrics_for_each_threshold_for_all_experiments[threshold] = {}
 
         for exp, scores in extracted_threat_levels.items():
             exp: str
@@ -246,25 +244,14 @@ def main():
                     'F1': calc.F1(),
                 }
             experiment_metrics.update(confusion_matrix)
-            metrics[threshold].update({exp: experiment_metrics})
+            metrics_for_each_threshold_for_all_experiments[threshold].update(
+                { exp: experiment_metrics})
+    return metrics_for_each_threshold_for_all_experiments
 
-    print(f"Total experiments: {expirements_number}")
 
-
-    pp(metrics)
-    print_line()
-    error_metrics = [
-            'TP',
-            'TN',
-            'FP',
-            'FN',
-        ]
-    
-    sum_of_confusion_matrix_per_threshold: Dict[int, Dict[str, float]] = get_sum_of_metrics(
-        metrics,
-        error_metrics
-    )
-    print("Printing total error metrics for all experiments")
+def print_sum_of_metrics_for_each_threshold(
+    sum_of_confusion_matrix_per_threshold: dict):
+    print("Printing total error metrics for all thresholds")
     # example of error_rates = {1: {'MCC': 0, 'FPR': 0.2, etc..}}
     error_rates: Dict[int, Dict[str, float]] = {}
     for threshold, confusion_matrix_sum in (
@@ -281,18 +268,63 @@ def main():
         # from confusion_matrix_sum.
         calc = Calculator("slips", f'/tmp/slips_threshold_{threshold}')
         calc.metrics = confusion_matrix_sum.copy()
-        # store the FPR TNR MCC F1 score etc. ofthe above confusion_matrix_sum
+        # store the FPR TNR MCC F1 score etc. of the above
+        # confusion_matrix_sum
         error_rates.update(
             { threshold: calc.calc_all_metrics() }
         )
         print_metrics_summary(error_rates[threshold])
         print_line()
-        
+    return error_rates
+
+def main():
     
-    print_extremes(get_extremes(
-        error_metrics,
-        sum_of_confusion_matrix_per_threshold
-        ))
+    args = parse_args()
+
+    expirements_number = len(extracted_threat_levels)
+    print(f"Total experiments: {expirements_number}")
+
+
+    metrics_for_each_threshold_for_all_experiments = \
+    get_metrics_for_each_threshold_for_all_experiments()
+    
+
+    # prints {1: {exp1: metrics, exp2: metrics},
+    #          2: {exp1: metrics, exp2: metrics}
+    pp(metrics_for_each_threshold_for_all_experiments)
+    print_line()
+    error_metrics = [
+            'TP',
+            'TN',
+            'FP',
+            'FN',
+        ]
+    
+    
+    # is something like
+    # {threshold: {confusion_matrix_sum}}
+    # e.g.
+    # {1: {'TP': sum,  'TN': 'FP':  'FN': ..},
+    #  2: {'TP':sum,  'TN': 'FP': , 'FN': },}
+    sum_of_confusion_matrix_per_threshold: Dict[int, Dict[str, float]] = \
+        get_sum_of_metrics_per_threshold(
+            metrics_for_each_threshold_for_all_experiments,
+            error_metrics
+        )
+    
+    # e.g
+    # {1: {'FPR': ., 'FNR': ., 'TPR': ., 'TNR': ., 'precision': ., 'F1': .,
+    # 'accuracy': ., 'MCC': .},
+    # 2: {'FPR': ., 'FNR': ., 'TPR': ., 'TNR': ., 'precision': ., 'F1': .,
+    # 'accuracy': ., 'MCC': .}
+    error_rates = print_sum_of_metrics_for_each_threshold(
+        sum_of_confusion_matrix_per_threshold)
+        
+    # we never need that
+    # print_extremes(get_extremes(
+    #     error_metrics,
+    #     sum_of_confusion_matrix_per_threshold
+    #     ))
     
     
     if args.plot:
