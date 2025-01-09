@@ -28,6 +28,7 @@ pip3 install -r requirements.txt
 ``` python3 netflowlabeler.py -c labels.config -f /path/to/generated/conn.log ```
 
 Note that the conn.log given to netflowlabeler should be tab-separated, not json.
+netflow labeler will drop the conn.log.labeled in the same directory of the given conn.log
 
 ##### (optional) To label the rest of the Zeek files using an already labeled conn.log file (conn.log.labeled)
 
